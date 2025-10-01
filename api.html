@@ -269,7 +269,7 @@
         // Google Geocoding (requires API key)
         async function searchAddressByGoogle(query) {
             try {
-                const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=AIzaSyCKAHTz4KvsPHmiQpK-5ew5eq17VO7bOxM`);
+                const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=AIzaSyBXlA2qmRG_KqEYxrnTPLZa6-muOutFDRo`);
                 const data = await response.json();
 
                 return (data.results || []).slice(0, 3).map(result => ({
