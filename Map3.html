@@ -213,7 +213,7 @@
 
             // Load stretchable popup image
             const images = {
-                'popup': 'https://docs.mapbox.com/mapbox-gl-js/assets/popup.png'
+                'popup': 'popup.png'
             };
 
             loadImages(images, (loadedImages) => {
@@ -379,8 +379,8 @@
                             }
                         }, false));
 
-                        // Toggle for price labels
-                        filters.appendChild(createToggleDiv("PRICE LABELS", () => {
+                        // Toggle for priority labels
+                        filters.appendChild(createToggleDiv("PRIORITY", () => {
                             const visibility = map.getLayoutProperty('price-labels', 'visibility');
                             if (visibility === 'visible') {
                                 map.setLayoutProperty('price-labels', 'visibility', 'none');
