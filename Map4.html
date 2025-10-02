@@ -149,23 +149,23 @@
 
         const appData = {
             pins: [],
-            availableMonths: [],
-            monthStates: {}
+            availableTypes: [],
+            typeStates: {}
         }
 
-        const monthNameColor = {
-            "jan": "#1f77b4",
-            "feb": "#ff7f0e",
-            "mar": "#2ca02c",
-            "apr": "#d62728",
-            "may": "#9467bd",
-            "jun": "#8c564b",
-            "jul": "#e377c2",
-            "aug": "#7f7f7f",
-            "sep": "#bcbd22",
-            "oct": "#17becf",
-            "nov": "#aec7e8",
-            "dec": "#ffbb78"
+        const categoryColor = {
+            "1 bike": "#1f77b4",
+            "2 bikes": "#ff7f0e",
+            "cargo bike": "#2ca02c",
+            "adapted cycle": "#d62728",
+            "other 1": "#9467bd",
+            "other 2": "#8c564b",
+            "other 3": "#e377c2",
+            "other 4": "#7f7f7f",
+            "other 5": "#bcbd22",
+            "other 6": "#17becf",
+            "other 7": "#aec7e8",
+            "other 8": "#ffbb78"
         };
 
         mapboxgl.accessToken = 'pk.eyJ1IjoicGF0cnlrLXdhc2lrIiwiYSI6ImNsenYybWswODAycXQyaXMybjE5djhvM2kifQ.79z21hharyuCVPDefwAimA';
@@ -176,10 +176,10 @@
             style: 'mapbox://styles/patryk-wasik/cmd2x9ey300c301s9f48y1tzd',
         }));
 
-        // Function to filter pins based on month states
+        // Function to filter pins based on type states
         function updateMapData() {
             const filteredPins = appData.pins.filter(pin =>
-                appData.monthStates[pin.properties.month] === true
+                appData.typeStates[pin.properties.type] === true
             );
 
             const geojson = {
@@ -278,15 +278,13 @@
                     console.log(data);
                     data.map(function (d, index) {
 
-                        d.Month = d.Month.toLowerCase() === "june" ? "jun" : d.Month;
-
                         const [lat, lng] = d.Coordinates.split(',').map(Number);
                         if (isNaN(lat) || isNaN(lng)) {
                             console.warn(`Invalid coordinates for ${d.Name}: ${d.Coordinates}`);
                             return;
                         }
 
-                        const month = d.Month.toLowerCase();
+                        const type = d.Type.toLowerCase();
 
                         const pin = {
                             "type": "Feature",
@@ -298,30 +296,28 @@
                                 "title": d.Name,
                                 "description": d.Text,
                                 "icon": "monument",
-                                "month": month,
-                                "color": monthNameColor[month] || "#000000",
+                                "type": type,
+                                "color": categoryColor[type] || "#000000",
                                 "ref": d.Ref ? `${d.Ref}` : "N/A",
                                 "priority": parseFloat(d.Ref) || 0 // Add priority for sorting
                             }
                         }
                         appData.pins.push(pin);
-                        appData.availableMonths.push(month);
+                        appData.availableTypes.push(type);
                     });
 
-                    appData.availableMonths = Array.from(new Set(appData.availableMonths));
-                    appData.availableMonths.sort((a, b) => {
-                        const monthOrder = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-                        return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+                    appData.availableTypes = Array.from(new Set(appData.availableTypes));
+                    appData.availableTypes.sort();
+
+                    // Initialize type states - all set to true by default
+                    appData.availableTypes.forEach(type => {
+                        appData.typeStates[type] = true;
                     });
 
-                    // Initialize month states - all set to true by default
-                    appData.availableMonths.forEach(month => {
-                        appData.monthStates[month] = true;
-                    });
-
-                    // Create toggles for each month
-                    appData.availableMonths.forEach(month => {
-                        const toggle = createToggleDiv(month.toUpperCase(), handleToggle, true);
+                    // Create toggles for each type
+                    appData.availableTypes.forEach(type => {
+                        const displayName = type.charAt(0).toUpperCase() + type.slice(1);
+                        const toggle = createToggleDiv(displayName, handleToggle, true);
                         filters.appendChild(toggle);
                     });
 
@@ -362,7 +358,6 @@
                 })
         });
 
-
         function createToggleDiv(name, onToggle, initialState = false) {
             const container = document.createElement('div');
             container.className = 'toggle-container-small';
@@ -400,13 +395,13 @@
             return container;
         }
 
-        // Handle toggle changes and update month states
+        // Handle toggle changes and update type states
         const handleToggle = (state, name) => {
-            const monthKey = name.toLowerCase();
-            appData.monthStates[monthKey] = state;
+            const typeKey = name.toLowerCase();
+            appData.typeStates[typeKey] = state;
 
             console.log(`${name} is now ${state ? 'ON' : 'OFF'}`);
-            console.log('Updated month states:', appData.monthStates);
+            console.log('Updated type states:', appData.typeStates);
 
             // Update the map with new filter
             updateMapData();
