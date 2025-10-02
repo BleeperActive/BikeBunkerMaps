@@ -106,6 +106,22 @@
         .toggle-input-small:focus+.toggle-slider-small {
             box-shadow: 0 0 1px #4CAF50;
         }
+
+        /* NEW STYLES FOR COLOR DOT */
+        .toggle-name-wrap-small {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toggle-color-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid #999;
+            flex: 0 0 auto;
+        }
     </style>
 </head>
 
@@ -122,9 +138,9 @@
             if (!password) return false;
 
             const validCredentials = {
-                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57', // MD5 of 'test'
-                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',  // MD5 of 'test1'
-                'admin': '098f6bcd4621d373cade4e832627b4f6'     // MD5 of 'admin'
+                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57',
+                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',
+                'admin': '098f6bcd4621d373cade4e832627b4f6'
             };
 
             const hashedPassword = md5(password);
@@ -136,14 +152,6 @@
                 return false;
             }
         }
-
-        // Check login on page load
-        /*
-        if (!checkLogin()) {
-            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
-            throw new Error("Access denied");
-        }
-        */
 
         const filters = document.getElementById('filters');
 
@@ -176,7 +184,6 @@
             style: 'mapbox://styles/patryk-wasik/cmd2x9ey300c301s9f48y1tzd',
         }));
 
-        // Function to filter pins based on type states
         function updateMapData() {
             const filteredPins = appData.pins.filter(pin =>
                 appData.typeStates[pin.properties.type] === true
@@ -198,7 +205,6 @@
                 tileSize: 256
             });
 
-            // Add satellite layer
             map.addLayer({
                 id: 'satellite-layer',
                 type: 'raster',
@@ -219,7 +225,6 @@
                 }
             });
 
-            // Add circle layer for pins (existing functionality)
             map.addLayer({
                 "id": "pins",
                 "type": "circle",
@@ -299,7 +304,7 @@
                                 "type": type,
                                 "color": categoryColor[type] || "#000000",
                                 "ref": d.Ref ? `${d.Ref}` : "N/A",
-                                "priority": parseFloat(d.Ref) || 0 // Add priority for sorting
+                                "priority": parseFloat(d.Ref) || 0
                             }
                         }
                         appData.pins.push(pin);
@@ -309,44 +314,31 @@
                     appData.availableTypes = Array.from(new Set(appData.availableTypes));
                     appData.availableTypes.sort();
 
-                    // Initialize type states - all set to true by default
                     appData.availableTypes.forEach(type => {
                         appData.typeStates[type] = true;
                     });
 
-                    // Create toggles for each type
+                    // Create toggles WITH COLOR
                     appData.availableTypes.forEach(type => {
                         const displayName = type.charAt(0).toUpperCase() + type.slice(1);
-                        const toggle = createToggleDiv(displayName, handleToggle, true);
+                        const color = categoryColor[type] || "#000000";
+                        const toggle = createToggleDiv(displayName, handleToggle, true, color);
                         filters.appendChild(toggle);
                     });
 
-                    // Initial map update
                     updateMapData();
 
-                    // Toggle for satellite layer
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createToggleDiv("SATELLITE", () => {
-                        const layer = map.getLayer('satellite-layer');
                         const visibility = map.getLayoutProperty('satellite-layer', 'visibility');
-                        if (visibility === 'visible') {
-                            map.setLayoutProperty('satellite-layer', 'visibility', 'none');
-                        } else {
-                            map.setLayoutProperty('satellite-layer', 'visibility', 'visible');
-                        }
+                        map.setLayoutProperty('satellite-layer', 'visibility', visibility === 'visible' ? 'none' : 'visible');
                     }, false));
 
-                    // Toggle for priority labels
                     filters.appendChild(createToggleDiv("PRIORITY", () => {
                         const visibility = map.getLayoutProperty('price-labels', 'visibility');
-                        if (visibility === 'visible') {
-                            map.setLayoutProperty('price-labels', 'visibility', 'none');
-                        } else {
-                            map.setLayoutProperty('price-labels', 'visibility', 'visible');
-                        }
+                        map.setLayoutProperty('price-labels', 'visibility', visibility === 'visible' ? 'none' : 'visible');
                     }, true));
 
-                    // Toggle for collision detection
                     filters.appendChild(createToggleDiv("ALLOW OVERLAP", (state) => {
                         map.setLayoutProperty('price-labels', 'text-allow-overlap', state);
                         map.setLayoutProperty('price-labels', 'icon-allow-overlap', state);
@@ -358,16 +350,12 @@
                 })
         });
 
-        function createToggleDiv(name, onToggle, initialState = false) {
+        function createToggleDiv(name, onToggle, initialState = false, color = null) {
             const container = document.createElement('div');
             container.className = 'toggle-container-small';
 
             const label = document.createElement('label');
             label.className = 'toggle-label-small';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'toggle-name-small';
-            nameSpan.textContent = name;
 
             const switchDiv = document.createElement('div');
             switchDiv.className = 'toggle-switch-small';
@@ -388,14 +376,32 @@
 
             switchDiv.appendChild(input);
             switchDiv.appendChild(slider);
+
+            const nameWrap = document.createElement('span');
+            nameWrap.className = 'toggle-name-wrap-small';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'toggle-name-small';
+            nameSpan.textContent = name;
+
+            nameWrap.appendChild(nameSpan);
+            
+            if (color) {
+                const colorDot = document.createElement('span');
+                colorDot.className = 'toggle-color-dot';
+                colorDot.style.backgroundColor = color;
+                nameWrap.appendChild(colorDot);
+            }
+
+            
+
             label.appendChild(switchDiv);
-            label.appendChild(nameSpan);
+            label.appendChild(nameWrap);
             container.appendChild(label);
 
             return container;
         }
 
-        // Handle toggle changes and update type states
         const handleToggle = (state, name) => {
             const typeKey = name.toLowerCase();
             appData.typeStates[typeKey] = state;
@@ -403,7 +409,6 @@
             console.log(`${name} is now ${state ? 'ON' : 'OFF'}`);
             console.log('Updated type states:', appData.typeStates);
 
-            // Update the map with new filter
             updateMapData();
         };
 
