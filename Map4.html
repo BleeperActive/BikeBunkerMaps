@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Use a clip layer to remove rendered features from the map</title>
+    <title>map</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js"></script>
@@ -176,25 +176,6 @@
             style: 'mapbox://styles/patryk-wasik/cmd2x9ey300c301s9f48y1tzd',
         }));
 
-        // Function to load stretchable image
-        function loadImages(urls, callback) {
-            const results = {};
-            for (const name in urls) {
-                map.loadImage(urls[name], makeCallback(name));
-            }
-
-            function makeCallback(name) {
-                return (err, image) => {
-                    results[name] = err ? null : image;
-
-                    // if all images are loaded, call the callback
-                    if (Object.keys(results).length === Object.keys(urls).length) {
-                        callback(results);
-                    }
-                };
-            }
-        }
-
         // Function to filter pins based on month states
         function updateMapData() {
             const filteredPins = appData.pins.filter(pin =>
@@ -210,10 +191,6 @@
         }
 
         map.on('style.load', () => {
-
-
-
-
 
             map.addSource('satellite-source', {
                 type: 'raster',
