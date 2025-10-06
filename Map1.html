@@ -3,13 +3,13 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Use a clip layer to remove rendered features from the map</title>
+    <title>map</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js"></script>
-    
+
     <style>
         body {
             margin: 0;
@@ -36,7 +36,6 @@
         }
 
         .toggle-container-small {
-            /* margin: 6px 0; */
             font-family: Arial, sans-serif;
         }
 
@@ -50,8 +49,6 @@
             border-radius: 4px;
             transition: background-color 0.2s ease;
         }
-
-
 
         .toggle-name-small {
             font-size: 13px;
@@ -109,6 +106,22 @@
         .toggle-input-small:focus+.toggle-slider-small {
             box-shadow: 0 0 1px #4CAF50;
         }
+
+        /* NEW STYLES FOR COLOR DOT */
+        .toggle-name-wrap-small {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toggle-color-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid #999;
+            flex: 0 0 auto;
+        }
     </style>
 </head>
 
@@ -125,8 +138,9 @@
             if (!password) return false;
 
             const validCredentials = {
-                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57', // MD5 of 'test'
-                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62'  // MD5 of 'test1'
+                'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57',
+                'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',
+                'admin': '098f6bcd4621d373cade4e832627b4f6'
             };
 
             const hashedPassword = md5(password);
@@ -149,24 +163,23 @@
 
         const appData = {
             pins: [],
-            availableMonths: [],
-            monthStates: {}
+            availableTypes: [],
+            typeStates: {}
         }
 
-        const monthNameColor = {
-            "jan": "#1f77b4",
-            "feb": "#ff7f0e",
-            "mar": "#2ca02c",
-            "apr": "#d62728",
-            "may": "#9467bd",
-            "jun": "#8c564b",
-            "jun": "#8c564b",
-            "jul": "#e377c2",
-            "aug": "#7f7f7f",
-            "sep": "#bcbd22",
-            "oct": "#17becf",
-            "nov": "#aec7e8",
-            "dec": "#ffbb78"
+        const categoryColor = {
+            "1 bike": "#1f77b4",
+            "2 bikes": "#ff7f0e",
+            "cargo bike": "#2ca02c",
+            "adapted cycle": "#d62728",
+            "other 1": "#9467bd",
+            "other 2": "#8c564b",
+            "other 3": "#e377c2",
+            "other 4": "#7f7f7f",
+            "other 5": "#bcbd22",
+            "other 6": "#17becf",
+            "other 7": "#aec7e8",
+            "other 8": "#ffbb78"
         };
 
         mapboxgl.accessToken = 'pk.eyJ1IjoicGF0cnlrLXdhc2lrIiwiYSI6ImNsenYybWswODAycXQyaXMybjE5djhvM2kifQ.79z21hharyuCVPDefwAimA';
@@ -177,10 +190,9 @@
             style: 'mapbox://styles/patryk-wasik/cmd2x9ey300c301s9f48y1tzd',
         }));
 
-        // Function to filter pins based on month states
         function updateMapData() {
             const filteredPins = appData.pins.filter(pin =>
-                appData.monthStates[pin.properties.month] === true
+                appData.typeStates[pin.properties.type] === true
             );
 
             const geojson = {
@@ -199,7 +211,6 @@
                 tileSize: 256
             });
 
-            // Add satellite layer
             map.addLayer({
                 id: 'satellite-layer',
                 type: 'raster',
@@ -210,7 +221,7 @@
                 paint: {
                     'raster-opacity': 0.8
                 }
-            }); // Insert before waterway labels
+            });
 
             map.addSource('pins', {
                 "type": "geojson",
@@ -225,10 +236,30 @@
                 "type": "circle",
                 "source": "pins",
                 "paint": {
-                    "circle-radius": 6,
+                    "circle-radius": 16,
                     "circle-color": ['get', 'color'],
-                    "circle-stroke-width": 1,
+                    "circle-stroke-width": 3,
                     "circle-stroke-color": "#FFFFFF"
+                }
+            });
+
+            map.addLayer({
+                'id': 'price-labels',
+                'type': 'symbol',
+                'source': 'pins',
+                'layout': {
+                    'visibility': 'visible',
+                    'text-field': ['get', 'ref'],
+                    'icon-text-fit': 'both',
+                    'icon-image': 'popup',
+                    'icon-allow-overlap': false,
+                    'text-allow-overlap': false,
+                    'text-ignore-placement': false,
+                    'icon-ignore-placement': false,
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-size': 12,
+                    'text-color': '#000000',
+                    'text-offset': [0, 0],
                 }
             });
 
@@ -256,9 +287,7 @@
             d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv")
                 .then(function (data) {
                     console.log(data);
-                    data.map(function (d) {
-
-                        d.Month = d.Month.toLowerCase() === "june" ? "jun" : d.Month;
+                    data.map(function (d, index) {
 
                         const [lat, lng] = d.Coordinates.split(',').map(Number);
                         if (isNaN(lat) || isNaN(lng)) {
@@ -266,7 +295,7 @@
                             return;
                         }
 
-                        const month = d.Month.toLowerCase();
+                        const type = d.Type.toLowerCase();
 
                         const pin = {
                             "type": "Feature",
@@ -278,65 +307,61 @@
                                 "title": d.Name,
                                 "description": d.Text,
                                 "icon": "monument",
-                                "month": month,
-                                "color": monthNameColor[month] || "#000000"
+                                "type": type,
+                                "color": categoryColor[type] || "#000000",
+                                "ref": d.Ref ? `${d.Ref}` : "N/A",
+                                "priority": parseFloat(d.Ref) || 0
                             }
                         }
                         appData.pins.push(pin);
-                        appData.availableMonths.push(month);
+                        appData.availableTypes.push(type);
                     });
 
-                    appData.availableMonths = Array.from(new Set(appData.availableMonths));
-                    appData.availableMonths.sort((a, b) => {
-                        const monthOrder = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-                        return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+                    appData.availableTypes = Array.from(new Set(appData.availableTypes));
+                    appData.availableTypes.sort();
+
+                    appData.availableTypes.forEach(type => {
+                        appData.typeStates[type] = true;
                     });
 
-                    // Initialize month states - all set to true by default
-                    appData.availableMonths.forEach(month => {
-                        appData.monthStates[month] = true;
-                    });
-
-                    // Create toggles for each month
-                    appData.availableMonths.forEach(month => {
-                        const toggle = createToggleDiv(month.toUpperCase(), handleToggle, true);
+                    // Create toggles WITH COLOR
+                    appData.availableTypes.forEach(type => {
+                        const displayName = type.charAt(0).toUpperCase() + type.slice(1);
+                        const color = categoryColor[type] || "#000000";
+                        const toggle = createToggleDiv(displayName, handleToggle, true, color);
                         filters.appendChild(toggle);
                     });
 
-                    // Initial map update
                     updateMapData();
 
-
-                    //toggle for satellite layer
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createToggleDiv("SATELLITE", () => {
-                        const layer = map.getLayer('satellite-layer');
                         const visibility = map.getLayoutProperty('satellite-layer', 'visibility');
-                        if (visibility === 'visible') {
-                            map.setLayoutProperty('satellite-layer', 'visibility', 'none');
-                        } else {
-                            map.setLayoutProperty('satellite-layer', 'visibility', 'visible');
-                        }
+                        map.setLayoutProperty('satellite-layer', 'visibility', visibility === 'visible' ? 'none' : 'visible');
+                    }, false));
 
+                    filters.appendChild(createToggleDiv("PRIORITY", () => {
+                        const visibility = map.getLayoutProperty('price-labels', 'visibility');
+                        map.setLayoutProperty('price-labels', 'visibility', visibility === 'visible' ? 'none' : 'visible');
+                    }, true));
+
+                    filters.appendChild(createToggleDiv("ALLOW OVERLAP", (state) => {
+                        map.setLayoutProperty('price-labels', 'text-allow-overlap', state);
+                        map.setLayoutProperty('price-labels', 'icon-allow-overlap', state);
                     }, false));
 
                 })
                 .catch(function (error) {
                     console.error('Error loading or parsing data:', error);
                 })
-
         });
 
-        function createToggleDiv(name, onToggle, initialState = false) {
+        function createToggleDiv(name, onToggle, initialState = false, color = null) {
             const container = document.createElement('div');
             container.className = 'toggle-container-small';
 
             const label = document.createElement('label');
             label.className = 'toggle-label-small';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'toggle-name-small';
-            nameSpan.textContent = name;
 
             const switchDiv = document.createElement('div');
             switchDiv.className = 'toggle-switch-small';
@@ -357,22 +382,39 @@
 
             switchDiv.appendChild(input);
             switchDiv.appendChild(slider);
+
+            const nameWrap = document.createElement('span');
+            nameWrap.className = 'toggle-name-wrap-small';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'toggle-name-small';
+            nameSpan.textContent = name;
+
+            nameWrap.appendChild(nameSpan);
+
+            if (color) {
+                const colorDot = document.createElement('span');
+                colorDot.className = 'toggle-color-dot';
+                colorDot.style.backgroundColor = color;
+                nameWrap.appendChild(colorDot);
+            }
+
+
+
             label.appendChild(switchDiv);
-            label.appendChild(nameSpan);
+            label.appendChild(nameWrap);
             container.appendChild(label);
 
             return container;
         }
 
-        // Handle toggle changes and update month states
         const handleToggle = (state, name) => {
-            const monthKey = name.toLowerCase();
-            appData.monthStates[monthKey] = state;
+            const typeKey = name.toLowerCase();
+            appData.typeStates[typeKey] = state;
 
             console.log(`${name} is now ${state ? 'ON' : 'OFF'}`);
-            console.log('Updated month states:', appData.monthStates);
+            console.log('Updated type states:', appData.typeStates);
 
-            // Update the map with new filter
             updateMapData();
         };
 
