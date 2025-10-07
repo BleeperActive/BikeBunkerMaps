@@ -359,7 +359,7 @@
                     </div>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">Text:</span>
+                    <span class="info-label">Feedback:</span>
                     <span class="info-value" id="text-value">-</span>
                 </div>
                 <div class="button-container">
@@ -654,7 +654,7 @@
             updateInfoFields(data) {
                 document.getElementById('ref-value').textContent = data.Ref || '-';
                 document.getElementById('group-value').textContent = data[AppConfig.GROUP_COLUMN] || '-';
-                document.getElementById('text-value').textContent = data.Text || '-';
+                document.getElementById('text-value').textContent = data.Feedback || '-';
 
                 this.updateButton('pictures-button', data['URL to behind the "pictures" button']);
                 this.updateButton('feedback-button', data['URL to display behind the "feedback" button']);
