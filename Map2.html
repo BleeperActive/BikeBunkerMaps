@@ -146,6 +146,7 @@
             width: 70%;
             max-width: 700px;
             height: 70%;
+            min-height: 500px;
             max-height: 600px;
             background: white;
             border-radius: 10px;
@@ -153,6 +154,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
+
         }
 
         #popup-header {
@@ -193,7 +195,7 @@
 
         #streetview-container {
             flex: 1;
-            min-height: 300px;
+            min-height: 200px;
         }
 
         #popup-streetview {
@@ -302,21 +304,29 @@
         }
 
         /* Mobile Responsive */
-        @media (max-width: 768px) {
+        @media (max-width: 768px),
+        (max-height: 500px) {
             #popup-content {
                 width: 95%;
-                height: 85%;
+                height: 85vh;
                 max-width: none;
-                max-height: none;
+                max-height: 98vh;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
             }
 
-            .action-button {
-                width: 100%;
+            #streetview-container {
+                flex: 1 1 auto;
+                min-height: 120px;
             }
 
-            .info-row-group {
-                flex-direction: row;
-                gap: 15px;
+            #info-section {
+                height: auto;
+                max-height: 250px;
+                min-height: 80px;
+                flex-shrink: 0;
+                overflow-y: auto;
             }
         }
     </style>
@@ -383,7 +393,6 @@
             }
         }
 
-        // Check login on page load
         if (!checkLogin()) {
             document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
             throw new Error("Access denied");
