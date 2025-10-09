@@ -25,7 +25,6 @@
             width: 100%;
         }
 
-        /* Filter Panel */
         #filters {
             position: absolute;
             top: 60px;
@@ -50,7 +49,6 @@
             border-bottom: 2px solid #4285f4;
         }
 
-        /* Toggle Switches */
         .toggle-container {
             margin: 6px 0;
             font-family: Arial, sans-serif;
@@ -128,7 +126,6 @@
             box-shadow: 0 0 1px #4285f4;
         }
 
-        /* Street View Popup */
         #streetview-popup {
             position: fixed;
             inset: 0;
@@ -154,7 +151,6 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
-
         }
 
         #popup-header {
@@ -203,7 +199,6 @@
             height: 100%;
         }
 
-        /* Info Section */
         #info-section {
             background: #f8f9fa;
             padding: 10px;
@@ -303,7 +298,6 @@
             align-items: flex-start;
         }
 
-        /* Mobile Responsive */
         @media (max-width: 768px),
         (max-height: 500px) {
             #popup-content {
@@ -337,7 +331,6 @@
     <div id="filters">
         <div class="filter-title">Filter by Group</div>
     </div>
-
     <div id="streetview-popup">
         <div id="popup-content">
             <div id="popup-header">
@@ -369,7 +362,6 @@
             </div>
         </div>
     </div>
-
     <script>
         function checkLogin() {
             const username = prompt("Enter username:");
@@ -404,10 +396,9 @@
             DEFAULT_CENTER: { lat: 53.350379, lng: -6.269649 },
             CLUSTER_CONFIG: {
                 gridSize: 100,
-                maxZoom: 18
+                maxZoom: 16
             }
         };
-
         const MapApp = {
             map: null,
             panorama: null,
@@ -419,7 +410,6 @@
                 groupStates: {},
                 csvData: []
             },
-
             getMarkerConfig() {
                 return {
                     path: google.maps.SymbolPath.CIRCLE,
@@ -430,7 +420,6 @@
                     strokeColor: 'white'
                 };
             },
-
             async init() {
                 try {
                     await this.initializeMap();
@@ -441,11 +430,9 @@
                     console.error('Initialization error:', error);
                 }
             },
-
             async initializeMap() {
                 const { Map } = await google.maps.importLibrary("maps");
                 const { StreetViewPanorama, StreetViewService } = await google.maps.importLibrary("streetView");
-
                 this.map = new Map(document.getElementById('map'), {
                     center: AppConfig.DEFAULT_CENTER,
                     zoom: 17,
@@ -457,7 +444,6 @@
                     },
                     mapTypeId: 'roadmap',
                 });
-
                 this.streetViewService = new StreetViewService();
                 this.panorama = new StreetViewPanorama(
                     document.getElementById('popup-streetview'),
@@ -469,10 +455,8 @@
                     }
                 );
             },
-
             async loadMarkerClusterer() {
                 if (window.markerClusterer) return window.markerClusterer;
-
                 return new Promise((resolve, reject) => {
                     const script = document.createElement('script');
                     script.src = 'https://unpkg.com/@googlemaps/markerclusterer@2.5.3/dist/index.min.js';
@@ -481,12 +465,10 @@
                     document.head.appendChild(script);
                 });
             },
-
             async loadData() {
                 try {
                     const data = await d3.csv(AppConfig.CSV_URL);
                     console.log('CSV data loaded:', data);
-
                     this.data.csvData = data;
                     this.extractUniqueGroups(data);
                     this.createFilterToggles();
@@ -496,110 +478,96 @@
                     console.error('Data loading error:', error);
                 }
             },
-
+            // Assign color to each group
             extractUniqueGroups(data) {
-                this.data.availableGroups = [...new Set(
+                const GROUP_COLORS = [
+                    '#4285f4', '#db4437', '#f4b400', '#0f9d58',
+                    '#ab47bc', '#00acc1', '#ff7043', '#9e9d24',
+                    '#5c6bc0', '#c2185b'
+                ];
+                const uniqueGroups = [...new Set(
                     data.map(d => d[AppConfig.GROUP_COLUMN])
                         .filter(g => g && g.trim() !== '')
                 )];
-
-                this.data.availableGroups.forEach(group => {
-                    this.data.groupStates[group] = true;
+                this.data.availableGroups = uniqueGroups.map((group, i) => ({
+                    group,
+                    color: GROUP_COLORS[i % GROUP_COLORS.length]
+                }));
+                this.data.availableGroups.forEach(g => {
+                    this.data.groupStates[g.group] = true;
                 });
             },
-
             createFilterToggles() {
                 const filtersEl = document.getElementById('filters');
-                this.data.availableGroups.forEach(group => {
-                    filtersEl.appendChild(this.createToggle(group, true));
+                this.data.availableGroups.forEach(g => {
+                    filtersEl.appendChild(this.createToggle(g.group, true));
                 });
             },
-
             createToggle(name, initialState) {
                 const container = document.createElement('div');
                 container.className = 'toggle-container';
-
                 const label = document.createElement('label');
                 label.className = 'toggle-label';
-
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'toggle-name';
                 nameSpan.textContent = name;
-
                 const switchDiv = document.createElement('div');
                 switchDiv.className = 'toggle-switch';
-
                 const input = document.createElement('input');
                 input.type = 'checkbox';
                 input.checked = initialState;
                 input.className = 'toggle-input';
                 input.addEventListener('change', () => this.handleToggle(input.checked, name));
-
                 const slider = document.createElement('span');
                 slider.className = 'toggle-slider';
-
                 switchDiv.append(input, slider);
                 label.append(switchDiv, nameSpan);
                 container.appendChild(label);
-
                 return container;
             },
-
             createMarkers(data) {
                 this.data.allMarkers = [];
-
                 data.forEach(d => {
                     const [lat, lng] = d.coordinates.split(',').map(Number);
-
+                    const groupEntry = this.data.availableGroups.find(g => g.group === (d[AppConfig.GROUP_COLUMN] || ''));
+                    const markerColor = groupEntry ? groupEntry.color : '#4285f4';
                     const marker = new google.maps.Marker({
                         position: { lat, lng },
                         title: d.name || 'Location',
-                        icon: this.getMarkerConfig()
+                        icon: Object.assign(this.getMarkerConfig(), { fillColor: markerColor })
                     });
-
                     marker.csvData = d;
                     marker.groupValue = d[AppConfig.GROUP_COLUMN] || '';
-
                     this.setupMarkerListeners(marker, lat, lng, d);
                     this.data.allMarkers.push(marker);
                 });
             },
-
             setupMarkerListeners(marker, lat, lng, data) {
                 marker.addListener('click', () => this.showStreetView(lat, lng, data));
-
                 const infoWindow = new google.maps.InfoWindow({
                     content: this.createInfoContent(data)
                 });
-
                 marker.addListener('mouseover', () => infoWindow.open(this.map, marker));
                 marker.addListener('mouseout', () => infoWindow.close());
             },
-
             createInfoContent(data) {
                 let content = '<div style="max-width: 200px;">';
-
                 if (data.Ref) content += `<strong>Ref:</strong> ${data.Ref}<br>`;
                 if (data[AppConfig.GROUP_COLUMN]) content += `<strong>Group:</strong> ${data[AppConfig.GROUP_COLUMN]}<br>`;
-
                 content += '</div>';
                 return content;
             },
-
             handleToggle(state, name) {
                 this.data.groupStates[name] = state;
                 this.updateMarkerVisibility();
             },
-
             updateMarkerVisibility() {
                 const filteredMarkers = this.data.allMarkers.filter(marker =>
                     this.data.groupStates[marker.groupValue] === true
                 );
-
                 if (this.clusterer) {
                     this.clusterer.clearMarkers();
                 }
-
                 if (filteredMarkers.length > 0 && window.markerClusterer) {
                     this.clusterer = new markerClusterer.MarkerClusterer({
                         map: this.map,
@@ -608,26 +576,20 @@
                     });
                 }
             },
-
             showStreetView(lat, lng, data) {
                 const position = { lat, lng };
-
                 document.getElementById('popup-title').textContent =
                     data.name || `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-
                 this.updateInfoFields(data);
                 document.getElementById('streetview-popup').style.display = 'block';
-
                 const container = document.getElementById('popup-streetview');
                 container.innerHTML = '<div class="loading">Loading Street View...</div>';
-
                 this.streetViewService.getPanorama({
                     location: position,
                     radius: 50,
                     source: google.maps.StreetViewSource.OUTDOOR
                 }).then(({ data: svData }) => {
                     container.innerHTML = '';
-
                     this.panorama = new google.maps.StreetViewPanorama(container, {
                         position: svData.location.latLng,
                         pov: { heading: 0, pitch: 0 },
@@ -637,7 +599,6 @@
                         navigationControl: true,
                         enableCloseButton: false
                     });
-
                     this.panorama.setPano(svData.location.pano);
                 }).catch(() => {
                     container.innerHTML = `
@@ -650,55 +611,42 @@
                     `;
                 });
             },
-
             updateInfoFields(data) {
                 document.getElementById('ref-value').textContent = data.Ref || '-';
                 document.getElementById('group-value').textContent = data[AppConfig.GROUP_COLUMN] || '-';
                 document.getElementById('text-value').textContent = data.Feedback || '-';
-
                 this.updateButton('pictures-button', data['URL to behind the "pictures" button']);
                 this.updateButton('feedback-button', data['URL to display behind the "feedback" button']);
             },
-
             updateButton(buttonId, url) {
                 const button = document.getElementById(buttonId);
                 const isValid = url && url.trim() !== '' && url !== '-';
-
                 button.href = isValid ? url : '#';
                 button.classList.toggle('disabled', !isValid);
                 button.style.pointerEvents = isValid ? 'auto' : 'none';
             },
-
             setupEventListeners() {
                 document.getElementById('streetview-popup').addEventListener('click', (e) => {
                     if (e.target === e.currentTarget) this.hideStreetView();
                 });
-
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') this.hideStreetView();
                 });
             },
-
             hideStreetView() {
                 document.getElementById('streetview-popup').style.display = 'none';
                 document.getElementById('popup-streetview').innerHTML = '';
             }
         };
-
-        // Global functions for Google Maps callback and onclick handler
         function initMap() {
             MapApp.init();
         }
-
         function hideStreetViewPopup() {
             MapApp.hideStreetView();
         }
-
-        // Make functions globally accessible
         window.initMap = initMap;
         window.hideStreetViewPopup = hideStreetViewPopup;
     </script>
-
     <script async defer
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXlA2qmRG_KqEYxrnTPLZa6-muOutFDRo&callback=initMap&libraries=streetView&loading=async">
         </script>
