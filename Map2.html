@@ -3,8 +3,8 @@
 
 <head>
     <title>Google Maps with Street View Popup</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <!-- Simple MD5 library -->
     <script src="https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js"></script>
@@ -69,17 +69,29 @@
             background-color: #f8f8f8;
         }
 
+        .toggle-color-circle {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
         .toggle-name {
             font-size: 13px;
             font-weight: 500;
             color: #333;
+            flex-grow: 1;
+            /* Allow name span to grow and fill space */
         }
 
         .toggle-switch {
             position: relative;
             width: 32px;
             height: 18px;
-            margin-right: 8px;
+            margin-left: 8px;
+            flex-shrink: 0;
         }
 
         .toggle-input {
@@ -209,7 +221,7 @@
         .info-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: top;
             margin-bottom: 8px;
             font-size: 14px;
         }
@@ -397,9 +409,10 @@
             DEFAULT_CENTER: { lat: 53.350379, lng: -6.269649 },
             CLUSTER_CONFIG: {
                 gridSize: 100,
-                maxZoom: 16
+                maxZoom: 15
             }
         };
+
         const MapApp = {
             map: null,
             panorama: null,
@@ -479,7 +492,6 @@
                     console.error('Data loading error:', error);
                 }
             },
-            // Assign color to each group
             extractUniqueGroups(data) {
                 const GROUP_COLORS = [
                     '#4285f4', '#db4437', '#f4b400', '#0f9d58',
@@ -501,17 +513,23 @@
             createFilterToggles() {
                 const filtersEl = document.getElementById('filters');
                 this.data.availableGroups.forEach(g => {
-                    filtersEl.appendChild(this.createToggle(g.group, true));
+                    filtersEl.appendChild(this.createToggle(g.group, true, g.color));
                 });
             },
-            createToggle(name, initialState) {
+            createToggle(name, initialState, color) {
                 const container = document.createElement('div');
                 container.className = 'toggle-container';
                 const label = document.createElement('label');
                 label.className = 'toggle-label';
+
+                const colorCircle = document.createElement('span');
+                colorCircle.className = 'toggle-color-circle';
+                colorCircle.style.backgroundColor = color;
+
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'toggle-name';
                 nameSpan.textContent = name;
+
                 const switchDiv = document.createElement('div');
                 switchDiv.className = 'toggle-switch';
                 const input = document.createElement('input');
@@ -522,7 +540,8 @@
                 const slider = document.createElement('span');
                 slider.className = 'toggle-slider';
                 switchDiv.append(input, slider);
-                label.append(switchDiv, nameSpan);
+
+                label.append(colorCircle, nameSpan, switchDiv);
                 container.appendChild(label);
                 return container;
             },
@@ -566,14 +585,17 @@
                 const filteredMarkers = this.data.allMarkers.filter(marker =>
                     this.data.groupStates[marker.groupValue] === true
                 );
+
                 if (this.clusterer) {
                     this.clusterer.clearMarkers();
+                    this.clusterer.setMap(null);
                 }
+
                 if (filteredMarkers.length > 0 && window.markerClusterer) {
                     this.clusterer = new markerClusterer.MarkerClusterer({
                         map: this.map,
                         markers: filteredMarkers,
-                        algorithm: new markerClusterer.GridAlgorithm(AppConfig.CLUSTER_CONFIG)
+                        algorithm: new markerClusterer.GridAlgorithm(AppConfig.CLUSTER_CONFIG),
                     });
                 }
             },
@@ -603,12 +625,12 @@
                     this.panorama.setPano(svData.location.pano);
                 }).catch(() => {
                     container.innerHTML = `
-                        <div class="loading">
-                            <div>Street View not available for this location</div>
-                            <div style="margin-top: 10px; font-size: 12px;">
-                                Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}
-                            </div>
+                    <div class="loading">
+                        <div>Street View not available for this location</div>
+                        <div style="margin-top: 10px; font-size: 12px;">
+                            Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}
                         </div>
+                    </div>
                     `;
                 });
             },
@@ -639,6 +661,7 @@
                 document.getElementById('popup-streetview').innerHTML = '';
             }
         };
+
         function initMap() {
             MapApp.init();
         }
