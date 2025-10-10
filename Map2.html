@@ -378,13 +378,14 @@
     <script>
 
         const filterGroupOptions = {
-            "Awaiting MM review": { color: "purple", sortOrder: 1 },
-            "MM feedback provided": { color: "blue", sortOrder: 2 },
-            "Awaiting PE review": { color: "black", sortOrder: 3 },
-            "Denied": { color: "red", sortOrder: 4 },
-            "Approved": { color: "orange", sortOrder: 5 },
-            "Installed": { color: "green", sortOrder: 6 }
+            "Awaiting MM review": { color: "#800080", sortOrder: 1 },   // purple
+            "MM feedback provided": { color: "#0000FF", sortOrder: 2 }, // blue
+            "Awaiting PE review": { color: "#000000", sortOrder: 3 },   // black
+            "Denied": { color: "#FF0000", sortOrder: 4 },               // red
+            "Approved": { color: "#FFA500", sortOrder: 5 },             // orange
+            "Installed": { color: "#008000", sortOrder: 6 }             // green
         }
+
 
         function checkLogin() {
             const username = prompt("Enter username:");
@@ -536,7 +537,7 @@
                         return orderA - orderB;
                     })
                     .forEach(g => {
-                        console.log('g.group', g.group);
+                        console.log('g.group', g.group, filterGroupOptions[g.group].color);
                         filtersEl.appendChild(
                             this.createToggle(g.group, true, filterGroupOptions[g.group].color, (state) => this.handleToggle(state, g.group))
                         );
@@ -588,9 +589,10 @@
             createMarkers(data) {
                 this.data.allMarkers = [];
                 data.forEach(d => {
+                    console.log('d', d);
                     const [lat, lng] = d.coordinates.split(',').map(Number);
                     const groupEntry = this.data.availableGroups.find(g => g.group === (d[AppConfig.GROUP_COLUMN] || ''));
-                    const markerColor = groupEntry ? groupEntry.color : '#4285f4';
+                    const markerColor = filterGroupOptions[d.group] ? filterGroupOptions[d.group].color : '#4285f4';
                     const marker = new google.maps.Marker({
                         position: { lat, lng },
                         title: d.name || 'Location',
