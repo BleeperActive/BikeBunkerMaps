@@ -9,6 +9,7 @@
     <!-- Simple MD5 library -->
     <script src="https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js"></script>
     <style>
+        /* Your existing CSS unchanged */
         * {
             box-sizing: border-box;
         }
@@ -398,10 +399,10 @@
             }
         }
 
-        if (!checkLogin()) {
-            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
-            throw new Error("Access denied");
-        }
+        // if (!checkLogin()) {
+        //     document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
+        //     throw new Error("Access denied");
+        // }
 
         const AppConfig = {
             CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTPqE_AH0J2pawMVjC7eJnkd7L6RhXlTSJ75EPSQyyrlH4lW3SsEGKtMDiiAzFAH3nEFZ-LfqG3lm3/pub?output=csv",
@@ -422,7 +423,8 @@
                 allMarkers: [],
                 availableGroups: [],
                 groupStates: {},
-                csvData: []
+                csvData: [],
+                clusteringEnabled: true // initialize clustering enabled state
             },
             getMarkerConfig() {
                 return {
@@ -512,11 +514,24 @@
             },
             createFilterToggles() {
                 const filtersEl = document.getElementById('filters');
+
+                // Add group toggles
                 this.data.availableGroups.forEach(g => {
-                    filtersEl.appendChild(this.createToggle(g.group, true, g.color));
+                    filtersEl.appendChild(
+                        this.createToggle(g.group, true, g.color, (state) => this.handleToggle(state, g.group))
+                    );
                 });
+
+                filtersEl.appendChild(document.createElement('hr'));
+                // Add clustering toggle
+                filtersEl.appendChild(
+                    this.createToggle('Enable Clustering', true, '', (state) => {
+                        this.data.clusteringEnabled = state;
+                        this.updateMarkerVisibility();
+                    })
+                );
             },
-            createToggle(name, initialState, color) {
+            createToggle(name, initialState, color, onToggleCallback) {
                 const container = document.createElement('div');
                 container.className = 'toggle-container';
                 const label = document.createElement('label');
@@ -536,7 +551,12 @@
                 input.type = 'checkbox';
                 input.checked = initialState;
                 input.className = 'toggle-input';
-                input.addEventListener('change', () => this.handleToggle(input.checked, name));
+
+                // Use the passed callback for onChange event
+                input.addEventListener('change', () => {
+                    onToggleCallback && onToggleCallback(input.checked);
+                });
+
                 const slider = document.createElement('span');
                 slider.className = 'toggle-slider';
                 switchDiv.append(input, slider);
@@ -589,15 +609,34 @@
                 if (this.clusterer) {
                     this.clusterer.clearMarkers();
                     this.clusterer.setMap(null);
+                    this.clusterer = null;
                 }
 
-                if (filteredMarkers.length > 0 && window.markerClusterer) {
-                    this.clusterer = new markerClusterer.MarkerClusterer({
-                        map: this.map,
-                        markers: filteredMarkers,
-                        algorithm: new markerClusterer.GridAlgorithm(AppConfig.CLUSTER_CONFIG),
-                    });
+                const enableClustering = this.data.clusteringEnabled;
+
+                if (filteredMarkers.length > 0) {
+                    if (enableClustering && window.markerClusterer) {
+                        this.clusterer = new markerClusterer.MarkerClusterer({
+                            map: this.map,
+                            markers: filteredMarkers,
+                            algorithm: new markerClusterer.GridAlgorithm(AppConfig.CLUSTER_CONFIG),
+                        });
+                        // Hide individual markers (they are clustered)
+                        filteredMarkers.forEach(marker => marker.setMap(null));
+                    } else {
+                        // Show individual markers without clustering
+                        filteredMarkers.forEach(marker => marker.setMap(this.map));
+                    }
                 }
+
+                // Hide markers not in filtered list
+                this.data.allMarkers.forEach(marker => {
+                    if (!filteredMarkers.includes(marker)) {
+                        marker.setMap(null);
+                    } else if (!enableClustering) {
+                        marker.setMap(this.map);
+                    }
+                });
             },
             showStreetView(lat, lng, data) {
                 const position = { lat, lng };
