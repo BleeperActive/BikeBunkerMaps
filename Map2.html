@@ -376,6 +376,16 @@
         </div>
     </div>
     <script>
+
+        const filterGroupOptions = {
+            "Awaiting MM review": { color: "purple", sortOrder: 1 },
+            "MM feedback provided": { color: "blue", sortOrder: 2 },
+            "Awaiting PE review": { color: "black", sortOrder: 3 },
+            "Denied": { color: "red", sortOrder: 4 },
+            "Approved": { color: "orange", sortOrder: 5 },
+            "Installed": { color: "green", sortOrder: 6 }
+        }
+
         function checkLogin() {
             const username = prompt("Enter username:");
             if (!username) return false;
@@ -515,12 +525,22 @@
             createFilterToggles() {
                 const filtersEl = document.getElementById('filters');
 
+
                 // Add group toggles
-                this.data.availableGroups.forEach(g => {
-                    filtersEl.appendChild(
-                        this.createToggle(g.group, true, g.color, (state) => this.handleToggle(state, g.group))
-                    );
-                });
+                this.data.availableGroups
+                    .sort((a, b) => {
+                        const optionA = filterGroupOptions[a.group];
+                        const optionB = filterGroupOptions[b.group];
+                        const orderA = optionA ? optionA.sortOrder : 999;
+                        const orderB = optionB ? optionB.sortOrder : 999;
+                        return orderA - orderB;
+                    })
+                    .forEach(g => {
+                        console.log('g.group', g.group);
+                        filtersEl.appendChild(
+                            this.createToggle(g.group, true, filterGroupOptions[g.group].color, (state) => this.handleToggle(state, g.group))
+                        );
+                    });
 
                 filtersEl.appendChild(document.createElement('hr'));
                 // Add clustering toggle
