@@ -397,7 +397,7 @@
             const validCredentials = {
                 'DCCTeam': 'ebc60703e805611515a3ef3d6cc76c57', // MD5 of 'test'
                 'Bleeper': 'd21f33c518b5d3c736161ad30c5f1f62',  // MD5 of 'test1'
-                'Admin': 'cc03e747a6afbbcbf8be7668acfebee5'  // MD5 of 'test1'
+                'Admin': '098f6bcd4621d373cade4e832627b4f6'  // MD5 of 'test'
             };
 
             const hashedPassword = md5(password);
@@ -410,10 +410,10 @@
             }
         }
 
-        if (!checkLogin()) {
-            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
-            throw new Error("Access denied");
-        }
+        // if (!checkLogin()) {
+        //     document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
+        //     throw new Error("Access denied");
+        // }
 
         const AppConfig = {
             CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSTPqE_AH0J2pawMVjC7eJnkd7L6RhXlTSJ75EPSQyyrlH4lW3SsEGKtMDiiAzFAH3nEFZ-LfqG3lm3/pub?output=csv",
@@ -537,9 +537,11 @@
                         return orderA - orderB;
                     })
                     .forEach(g => {
-                        console.log('g.group', g.group, filterGroupOptions[g.group].color);
+                        const color = filterGroupOptions[g.group] ? filterGroupOptions[g.group].color : "#4285f4";
+                        //console.log('g.group', g.group, filterGroupOptions[g.group].color);
+                        console.log('color', color);
                         filtersEl.appendChild(
-                            this.createToggle(g.group, true, filterGroupOptions[g.group].color, (state) => this.handleToggle(state, g.group))
+                            this.createToggle(g.group, true, color, (state) => this.handleToggle(state, g.group))
                         );
                     });
 
@@ -588,21 +590,23 @@
             },
             createMarkers(data) {
                 this.data.allMarkers = [];
-                data.forEach(d => {
-                    console.log('d', d);
-                    const [lat, lng] = d.coordinates.split(',').map(Number);
-                    const groupEntry = this.data.availableGroups.find(g => g.group === (d[AppConfig.GROUP_COLUMN] || ''));
-                    const markerColor = filterGroupOptions[d.group] ? filterGroupOptions[d.group].color : '#4285f4';
-                    const marker = new google.maps.Marker({
-                        position: { lat, lng },
-                        title: d.name || 'Location',
-                        icon: Object.assign(this.getMarkerConfig(), { fillColor: markerColor })
+                data
+                    .filter(d => d.coordinates && d.coordinates.includes(','))
+                    .forEach(d => {
+                        console.log('d', d);
+                        const [lat, lng] = d.coordinates.split(',').map(Number);
+                        const groupEntry = this.data.availableGroups.find(g => g.group === (d[AppConfig.GROUP_COLUMN] || ''));
+                        const markerColor = filterGroupOptions[d.group] ? filterGroupOptions[d.group].color : '#4285f4';
+                        const marker = new google.maps.Marker({
+                            position: { lat, lng },
+                            title: d.name || 'Location',
+                            icon: Object.assign(this.getMarkerConfig(), { fillColor: markerColor })
+                        });
+                        marker.csvData = d;
+                        marker.groupValue = d[AppConfig.GROUP_COLUMN] || '';
+                        this.setupMarkerListeners(marker, lat, lng, d);
+                        this.data.allMarkers.push(marker);
                     });
-                    marker.csvData = d;
-                    marker.groupValue = d[AppConfig.GROUP_COLUMN] || '';
-                    this.setupMarkerListeners(marker, lat, lng, d);
-                    this.data.allMarkers.push(marker);
-                });
             },
             setupMarkerListeners(marker, lat, lng, data) {
                 marker.addListener('click', () => this.showStreetView(lat, lng, data));
