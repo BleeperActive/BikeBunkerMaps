@@ -154,10 +154,10 @@
         }
 
         // Check login on page load
-        if (!checkLogin()) {
-            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
-            throw new Error("Access denied");
-        }
+        // if (!checkLogin()) {
+        //     document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
+        //     throw new Error("Access denied");
+        // }
 
         const filters = document.getElementById('filters');
 
@@ -167,13 +167,27 @@
             typeStates: {}
         }
 
+        // const categoryColor = {
+        //     "1 bike": "#1f77b4",
+        //     "2 bikes": "#ff7f0e",
+        //     "cargo bike": "#2ca02c",
+        //     "adapted cycle": "#d62728",
+        //     "other 1": "#9467bd",
+        //     "other 2": "#8c564b",
+        //     "other 3": "#e377c2",
+        //     "other 4": "#7f7f7f",
+        //     "other 5": "#bcbd22",
+        //     "other 6": "#17becf",
+        //     "other 7": "#aec7e8",
+        //     "other 8": "#ffbb78"
+        // };
         const categoryColor = {
-            "1 bike": "#1f77b4",
-            "2 bikes": "#ff7f0e",
-            "cargo bike": "#2ca02c",
-            "adapted cycle": "#d62728",
-            "other 1": "#9467bd",
-            "other 2": "#8c564b",
+            "1": "#1f77b4",
+            "2": "#ff7f0e",
+            "3": "#2ca02c",
+            "4": "#d62728",
+            "5": "#9467bd",
+            "6": "#8c564b",
             "other 3": "#e377c2",
             "other 4": "#7f7f7f",
             "other 5": "#bcbd22",
