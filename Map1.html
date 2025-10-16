@@ -2,10 +2,10 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>map</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-    <link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet">
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.css" rel="stylesheet" />
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.15.0/mapbox-gl.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/js-md5@0.7.3/src/md5.min.js"></script>
@@ -33,6 +33,8 @@
             padding: 10px;
             font-family: Arial, sans-serif;
             z-index: 1;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .toggle-container-small {
@@ -122,14 +124,41 @@
             border: 1px solid #999;
             flex: 0 0 auto;
         }
+
+        /* Housefront filter styles */
+        #housefront-filter {
+            margin-top: 10px;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            color: #333;
+            user-select: none;
+        }
+
+        #housefront-filter label {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        /* Biketype filter styles */
+        #biketype-filter {
+            margin-top: 10px;
+        }
+
+        #biketype-filter>div {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 4px;
+            user-select: none;
+        }
     </style>
 </head>
 
 <body>
     <div id="map"></div>
     <div id="filters"></div>
-    <script>
 
+    <script>
         function checkLogin() {
             const username = prompt("Enter username:");
             if (!username) return false;
@@ -153,34 +182,18 @@
             }
         }
 
-        // Check login on page load
-        if (!checkLogin()) {
-            document.body.innerHTML = "<h2 style='text-align:center; margin-top:50vh; transform:translateY(-50%);'>Access Denied</h2>";
-            throw new Error("Access denied");
-        }
-
+        // const filters div on page
         const filters = document.getElementById('filters');
 
         const appData = {
             pins: [],
             availableTypes: [],
-            typeStates: {}
-        }
+            typeStates: {},
+            housefrontFilter: "all",
+            bikeTypeStates: {}, // for biketype toggles state
+            bikeTypesDistinct: [] // to store unique bike types
+        };
 
-        // const categoryColor = {
-        //     "1 bike": "#1f77b4",
-        //     "2 bikes": "#ff7f0e",
-        //     "cargo bike": "#2ca02c",
-        //     "adapted cycle": "#d62728",
-        //     "other 1": "#9467bd",
-        //     "other 2": "#8c564b",
-        //     "other 3": "#e377c2",
-        //     "other 4": "#7f7f7f",
-        //     "other 5": "#bcbd22",
-        //     "other 6": "#17becf",
-        //     "other 7": "#aec7e8",
-        //     "other 8": "#ffbb78"
-        // };
         const categoryColor = {
             "1": "#1f77b4",
             "2": "#ff7f0e",
@@ -205,9 +218,21 @@
         }));
 
         function updateMapData() {
-            const filteredPins = appData.pins.filter(pin =>
-                appData.typeStates[pin.properties.type] === true
-            );
+            const filteredPins = appData.pins.filter(pin => {
+                const typeEnabled = appData.typeStates[pin.properties.type] === true;
+
+                const housefrontEnabled = appData.housefrontFilter === "all" ||
+                    (pin.properties.housefront && pin.properties.housefront.toLowerCase() === appData.housefrontFilter);
+
+                // Check if any of the pin's bike types match enabled toggles
+                let bikeTypesForPin = [];
+                if (pin.properties.biketype) {
+                    bikeTypesForPin = pin.properties.biketype.split(/\s*\n\s*|\s*,\s*/).map(t => t.toLowerCase());
+                }
+                const bikeTypeEnabled = bikeTypesForPin.length === 0 || bikeTypesForPin.some(bt => appData.bikeTypeStates[bt] === true);
+
+                return typeEnabled && housefrontEnabled && bikeTypeEnabled;
+            });
 
             const geojson = {
                 "type": "FeatureCollection",
@@ -215,6 +240,116 @@
             };
 
             map.getSource('pins').setData(geojson);
+        }
+
+        function createToggleDiv(name, onToggle, initialState = false, color = null) {
+            const container = document.createElement('div');
+            container.className = 'toggle-container-small';
+
+            const label = document.createElement('label');
+            label.className = 'toggle-label-small';
+
+            const switchDiv = document.createElement('div');
+            switchDiv.className = 'toggle-switch-small';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.checked = initialState;
+            input.className = 'toggle-input-small';
+
+            const slider = document.createElement('span');
+            slider.className = 'toggle-slider-small';
+
+            input.addEventListener('change', function () {
+                if (onToggle) {
+                    onToggle(this.checked, name);
+                }
+            });
+
+            switchDiv.appendChild(input);
+            switchDiv.appendChild(slider);
+
+            const nameWrap = document.createElement('span');
+            nameWrap.className = 'toggle-name-wrap-small';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'toggle-name-small';
+            nameSpan.textContent = name;
+
+            nameWrap.appendChild(nameSpan);
+
+            if (color) {
+                const colorDot = document.createElement('span');
+                colorDot.className = 'toggle-color-dot';
+                colorDot.style.backgroundColor = color;
+                nameWrap.appendChild(colorDot);
+            }
+
+            label.appendChild(switchDiv);
+            label.appendChild(nameWrap);
+            container.appendChild(label);
+
+            return container;
+        }
+
+        function handleToggle(state, name) {
+            const typeKey = name.toLowerCase();
+            appData.typeStates[typeKey] = state;
+            updateMapData();
+        }
+
+        function createHousefrontFilter() {
+            const container = document.createElement('div');
+            container.id = "housefront-filter";
+
+            const title = document.createElement('div');
+            title.textContent = "Housefront:";
+            container.appendChild(title);
+
+            ["all", "yes", "no"].forEach(value => {
+                const label = document.createElement('label');
+                const input = document.createElement('input');
+                input.type = "radio";
+                input.name = "housefront";
+                input.value = value;
+                if (value === "all") input.checked = true;
+
+                input.addEventListener('change', () => {
+                    appData.housefrontFilter = value;
+                    updateMapData();
+                });
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(value.charAt(0).toUpperCase() + value.slice(1)));
+                container.appendChild(label);
+            });
+
+            return container;
+        }
+
+        // NEW FUNCTION TO CREATE BIKETYPE TOGGLES
+        function createBikeTypeFilter() {
+            const container = document.createElement('div');
+            container.id = "biketype-filter";
+
+            const title = document.createElement('div');
+            title.textContent = "Bike Types:";
+            container.appendChild(title);
+
+            appData.bikeTypesDistinct.forEach(bikeType => {
+                const toggle = createToggleDiv(
+                    bikeType.charAt(0).toUpperCase() + bikeType.slice(1),
+                    (state) => {
+                        appData.bikeTypeStates[bikeType] = state;
+                        updateMapData();
+                    },
+                    true,
+                    null
+                );
+                container.appendChild(toggle);
+                appData.bikeTypeStates[bikeType] = true; // default all ON
+            });
+
+            return container;
         }
 
         map.on('style.load', () => {
@@ -287,7 +422,7 @@
 
                 new mapboxgl.Popup({ closeOnClick: true, offset: 5 })
                     .setLngLat(coordinates)
-                    .setHTML('<h3>' + description + '</h3>')
+                    .setHTML(description)
                     .addTo(map);
             });
 
@@ -300,16 +435,22 @@
 
             d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv")
                 .then(function (data) {
-                    console.log(data);
-                    data.map(function (d, index) {
+                    console.log('data', data);
+                    const bikeTypeSet = new Set();
 
+                    data.forEach(d => {
                         const [lat, lng] = d.Coordinates.split(',').map(Number);
-                        if (isNaN(lat) || isNaN(lng)) {
-                            console.warn(`Invalid coordinates for ${d.Name}: ${d.Coordinates}`);
-                            return;
-                        }
+                        if (isNaN(lat) || isNaN(lng)) return;
 
                         const type = d.Type.toLowerCase();
+
+                        // Extract bike types splitting by newline or comma, normalized to lowercase trimmed strings
+                        let bikeTypesRaw = d.Biketype || "";
+                        let bikeTypesArray = bikeTypesRaw.split(/\s*\n\s*|\s*,\s*/).map(bt => bt.toLowerCase().trim());
+
+                        bikeTypesArray.forEach(bt => {
+                            if (bt) bikeTypeSet.add(bt);
+                        });
 
                         const pin = {
                             "type": "Feature",
@@ -319,20 +460,23 @@
                             },
                             "properties": {
                                 "title": d.Name,
-                                "description": d.Text,
+                                "description": `<h3>${d.Text}</h3>Housefront: ${d.Housefront || "N/A"}<br/>Bike Types: ${d.Biketype || "N/A"}`,
                                 "icon": "monument",
                                 "type": type,
                                 "color": categoryColor[type] || "#000000",
                                 "ref": d.Ref ? `${d.Ref}` : "N/A",
-                                "priority": parseFloat(d.Ref) || 0
+                                "priority": parseFloat(d.Ref) || 0,
+                                "housefront": d.Housefront ? d.Housefront.toLowerCase() : "no",
+                                "biketype": d.Biketype ? d.Biketype : ""
                             }
-                        }
+                        };
                         appData.pins.push(pin);
                         appData.availableTypes.push(type);
                     });
 
-                    appData.availableTypes = Array.from(new Set(appData.availableTypes));
-                    appData.availableTypes.sort();
+                    appData.bikeTypesDistinct = Array.from(bikeTypeSet).sort();
+
+                    appData.availableTypes = Array.from(new Set(appData.availableTypes)).sort();
 
                     appData.availableTypes.forEach(type => {
                         appData.typeStates[type] = true;
@@ -346,8 +490,15 @@
                         filters.appendChild(toggle);
                     });
 
-                    updateMapData();
+                    // Housefront filter with hr
+                    filters.appendChild(document.createElement('hr'));
+                    filters.appendChild(createHousefrontFilter());
 
+                    // Biketype filter with hr
+                    filters.appendChild(document.createElement('hr'));
+                    filters.appendChild(createBikeTypeFilter());
+
+                    // Existing horizontal rule and other toggles
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createToggleDiv("SATELLITE", () => {
                         const visibility = map.getLayoutProperty('satellite-layer', 'visibility');
@@ -364,76 +515,14 @@
                         map.setLayoutProperty('price-labels', 'icon-allow-overlap', state);
                     }, false));
 
+                    updateMapData();
+
                 })
                 .catch(function (error) {
                     console.error('Error loading or parsing data:', error);
-                })
+                });
         });
-
-        function createToggleDiv(name, onToggle, initialState = false, color = null) {
-            const container = document.createElement('div');
-            container.className = 'toggle-container-small';
-
-            const label = document.createElement('label');
-            label.className = 'toggle-label-small';
-
-            const switchDiv = document.createElement('div');
-            switchDiv.className = 'toggle-switch-small';
-
-            const input = document.createElement('input');
-            input.type = 'checkbox';
-            input.checked = initialState;
-            input.className = 'toggle-input-small';
-
-            const slider = document.createElement('span');
-            slider.className = 'toggle-slider-small';
-
-            input.addEventListener('change', function () {
-                if (onToggle) {
-                    onToggle(this.checked, name);
-                }
-            });
-
-            switchDiv.appendChild(input);
-            switchDiv.appendChild(slider);
-
-            const nameWrap = document.createElement('span');
-            nameWrap.className = 'toggle-name-wrap-small';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'toggle-name-small';
-            nameSpan.textContent = name;
-
-            nameWrap.appendChild(nameSpan);
-
-            if (color) {
-                const colorDot = document.createElement('span');
-                colorDot.className = 'toggle-color-dot';
-                colorDot.style.backgroundColor = color;
-                nameWrap.appendChild(colorDot);
-            }
-
-
-
-            label.appendChild(switchDiv);
-            label.appendChild(nameWrap);
-            container.appendChild(label);
-
-            return container;
-        }
-
-        const handleToggle = (state, name) => {
-            const typeKey = name.toLowerCase();
-            appData.typeStates[typeKey] = state;
-
-            console.log(`${name} is now ${state ? 'ON' : 'OFF'}`);
-            console.log('Updated type states:', appData.typeStates);
-
-            updateMapData();
-        };
-
     </script>
-
 </body>
 
 </html>
