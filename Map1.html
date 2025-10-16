@@ -182,7 +182,6 @@
             }
         }
 
-        // const filters div on page
         const filters = document.getElementById('filters');
 
         const appData = {
@@ -190,8 +189,8 @@
             availableTypes: [],
             typeStates: {},
             housefrontFilter: "all",
-            bikeTypeStates: {}, // for biketype toggles state
-            bikeTypesDistinct: [] // to store unique bike types
+            bikeTypeStates: {}, // to track toggle states of bike types
+            bikeTypesDistinct: [] // store unique bike types
         };
 
         const categoryColor = {
@@ -224,11 +223,11 @@
                 const housefrontEnabled = appData.housefrontFilter === "all" ||
                     (pin.properties.housefront && pin.properties.housefront.toLowerCase() === appData.housefrontFilter);
 
-                // Check if any of the pin's bike types match enabled toggles
                 let bikeTypesForPin = [];
                 if (pin.properties.biketype) {
                     bikeTypesForPin = pin.properties.biketype.split(/\s*\n\s*|\s*,\s*/).map(t => t.toLowerCase());
                 }
+
                 const bikeTypeEnabled = bikeTypesForPin.length === 0 || bikeTypesForPin.some(bt => appData.bikeTypeStates[bt] === true);
 
                 return typeEnabled && housefrontEnabled && bikeTypeEnabled;
@@ -326,7 +325,6 @@
             return container;
         }
 
-        // NEW FUNCTION TO CREATE BIKETYPE TOGGLES
         function createBikeTypeFilter() {
             const container = document.createElement('div');
             container.id = "biketype-filter";
@@ -346,14 +344,13 @@
                     null
                 );
                 container.appendChild(toggle);
-                appData.bikeTypeStates[bikeType] = true; // default all ON
+                appData.bikeTypeStates[bikeType] = true;
             });
 
             return container;
         }
 
         map.on('style.load', () => {
-
             map.addSource('satellite-source', {
                 type: 'raster',
                 url: 'mapbox://mapbox.satellite',
@@ -429,13 +426,13 @@
             map.on('mouseenter', 'pins', () => {
                 map.getCanvas().style.cursor = 'pointer';
             });
+
             map.on('mouseleave', 'pins', () => {
                 map.getCanvas().style.cursor = '';
             });
 
             d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vTCug3Ckya-3WVZ-PvVx9joPo_CGOdIBg2UZBx7FhCrgZhi2YFOtbbc3xtP9vS5esuf9S_iJVvJxOgD/pub?output=csv")
                 .then(function (data) {
-                    console.log('data', data);
                     const bikeTypeSet = new Set();
 
                     data.forEach(d => {
@@ -444,7 +441,7 @@
 
                         const type = d.Type.toLowerCase();
 
-                        // Extract bike types splitting by newline or comma, normalized to lowercase trimmed strings
+                        // Split by newline or comma, trim and lowercase
                         let bikeTypesRaw = d.Biketype || "";
                         let bikeTypesArray = bikeTypesRaw.split(/\s*\n\s*|\s*,\s*/).map(bt => bt.toLowerCase().trim());
 
@@ -482,7 +479,7 @@
                         appData.typeStates[type] = true;
                     });
 
-                    // Create toggles WITH COLOR
+                    // Create toggles for types with color
                     appData.availableTypes.forEach(type => {
                         const displayName = type.charAt(0).toUpperCase() + type.slice(1);
                         const color = categoryColor[type] || "#000000";
@@ -490,15 +487,15 @@
                         filters.appendChild(toggle);
                     });
 
-                    // Housefront filter with hr
+                    // Insert Housefront filter section
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createHousefrontFilter());
 
-                    // Biketype filter with hr
+                    // Insert BikeType filter section
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createBikeTypeFilter());
 
-                    // Existing horizontal rule and other toggles
+                    // Insert other toggles
                     filters.appendChild(document.createElement('hr'));
                     filters.appendChild(createToggleDiv("SATELLITE", () => {
                         const visibility = map.getLayoutProperty('satellite-layer', 'visibility');
@@ -516,7 +513,6 @@
                     }, false));
 
                     updateMapData();
-
                 })
                 .catch(function (error) {
                     console.error('Error loading or parsing data:', error);
